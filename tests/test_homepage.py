@@ -39,7 +39,7 @@ class GiteaUITest(unittest.TestCase):
     def tearDown(self):
         if not HEADLESS:
             print(" Waiting 5 seconds before closing the browser...")
-            time.sleep(10)
+            time.sleep(3)
         self.driver.quit()
 
 
