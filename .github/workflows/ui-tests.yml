@@ -1,0 +1,37 @@
+name: Gitea UI Tests
+
+on:
+  push:
+    paths:
+      - 'tests/**'
+      - '.github/workflows/ui-tests.yml'
+      - 'requirements.txt'
+  pull_request:
+    paths:
+      - 'tests/**'
+
+jobs:
+  ui-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run UI tests (headless)
+        env:
+          BASE_URL: http://108.129.157.218:3000
+          HEADLESS: true
+        run: |
+          echo "Running UI tests against $BASE_URL in headless mode..."
+          pytest tests -v
