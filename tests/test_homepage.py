@@ -7,6 +7,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 import time
+import tempfile  
 # Load environment variables from .env
 load_dotenv()
 
@@ -14,16 +15,25 @@ BASE_URL = os.getenv("BASE_URL")
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
 class GiteaUITest(unittest.TestCase):
+
+
     def setUp(self):
         options = Options()
+
         if HEADLESS:
             options.add_argument("--headless")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
-        else:
-            options.add_argument("--start-maximized")  # 👈 ensure visible full window
 
-        self.driver = webdriver.Chrome()
+        #  Create unique temporary user data dir
+        user_data_dir = tempfile.mkdtemp()
+        options.add_argument(f"--user-data-dir={user_data_dir}")
+
+        if not HEADLESS:
+            options.add_argument("--start-maximized")
+
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
 
 
     def tearDown(self):
