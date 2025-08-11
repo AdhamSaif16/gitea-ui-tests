@@ -6,6 +6,7 @@ on:
       - 'tests/**'
       - '.github/workflows/ui-tests.yml'
       - 'requirements.txt'
+      - '.env'
   pull_request:
     paths:
       - 'tests/**'
