@@ -2,6 +2,8 @@
 import os
 import sys
 import uuid
+import tempfile
+import shutil
 from pathlib import Path
 import unittest
 from urllib.parse import urlparse
@@ -25,6 +27,17 @@ class TestCreateRepository(unittest.TestCase):
             options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+
+        # Unique Chrome profile per class (avoids "profile in use" on CI)
+        cls.user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
+        options.add_argument(f"--user-data-dir={cls.user_data_dir}")
+
+        # Extra CI-friendly flags
+        options.add_argument("--remote-debugging-port=0")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-gpu")
+
         cls.driver = webdriver.Chrome(options=options)
 
         # Config & creds (override via env)
@@ -35,7 +48,10 @@ class TestCreateRepository(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.driver.quit()
+        try:
+            cls.driver.quit()
+        finally:
+            shutil.rmtree(cls.user_data_dir, ignore_errors=True)
 
     def test_create_repository(self):
         # 1) Login
@@ -53,12 +69,9 @@ class TestCreateRepository(unittest.TestCase):
         )
 
         # 3) Assertions
-        # By repo name only
         self.assertEqual(repo_page.get_repo_name(), repo_name)
-        # Optional: also assert owner prefix
         self.assertTrue(repo_page.get_repo_full_name().startswith(f"{self.username}/"))
 
-        # By URL (owner/repo at the end)
         path = urlparse(self.driver.current_url).path.rstrip("/")
         self.assertTrue(path.endswith(f"/{self.username}/{repo_name}"))
 

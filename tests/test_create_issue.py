@@ -1,26 +1,42 @@
 # tests/test_create_issue.py
 import os
+import sys
 import uuid
 import unittest
-from selenium import webdriver
-import sys
+import tempfile
+import shutil
 from pathlib import Path
-ROOT = Path(__file__).resolve().parents[1]  # one level up from tests/
-sys.path.insert(0, str(ROOT))
 
-from pages.login_page import LoginPage
+# Make project root importable
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from selenium import webdriver
 from pages.login_page import LoginPage
 from tests.utils.gitea_api import delete_repo
+
 
 class TestCreateIssue(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Configure WebDriver
+        # Chrome options
         options = webdriver.ChromeOptions()
         if os.getenv("HEADLESS", "1") == "1":
             options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+
+        # 🔑 unique Chrome profile per class (prevents "profile in use" on CI)
+        cls.user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
+        options.add_argument(f"--user-data-dir={cls.user_data_dir}")
+
+        # Extra CI-friendly flags
+        options.add_argument("--remote-debugging-port=0")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-gpu")
+
         cls.driver = webdriver.Chrome(options=options)
 
         # Config/creds
@@ -32,7 +48,10 @@ class TestCreateIssue(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.driver.quit()
+        try:
+            cls.driver.quit()
+        finally:
+            shutil.rmtree(cls.user_data_dir, ignore_errors=True)
 
     def test_create_issue(self):
         API_TOKEN = os.getenv("GITEA_API_TOKEN")
@@ -68,6 +87,6 @@ class TestCreateIssue(unittest.TestCase):
         else:
             print("[cleanup] GITEA_API_TOKEN not set, skipping repo deletion.")
 
+
 if __name__ == "__main__":
-    # Avoid SystemExit stopping VS Code debugger
     unittest.main(verbosity=2, exit=False)
