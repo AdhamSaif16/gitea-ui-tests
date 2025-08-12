@@ -3,7 +3,7 @@
 #   -Locators (username, password, sign-in)
 #   -Actions (open(), login_as(...))
 #   -Returns a DashboardPage to enable page chaining
-
+import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -27,6 +27,7 @@ class LoginPage(BasePage):
         """Perform login and return DashboardPage (page chaining)."""
         self.type(self.USERNAME, username)
         self.type(self.PASSWORD, password)
+        time.sleep(10)
 
         # Capture the login URL to detect navigation
         old_url = self.driver.current_url

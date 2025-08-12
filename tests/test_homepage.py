@@ -1,51 +1,41 @@
+# tests/test_homepage_title.py
 import os
+import sys
 import unittest
+from pathlib import Path
+
+# Make project root importable so "from pages..." (if needed later) works
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from dotenv import load_dotenv
-import time
-import tempfile  
-# Load environment variables from .env
-load_dotenv()
 
-BASE_URL = os.getenv("BASE_URL")
-HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
+class TestHomepageTitle(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Headless by default unless HEADLESS="0"
+        headless_env = os.getenv("HEADLESS", "1")
+        cls.headless = headless_env not in ("0", "false", "False")
 
-class GiteaUITest(unittest.TestCase):
+        options = webdriver.ChromeOptions()
+        if cls.headless:
+            options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
+        cls.driver = webdriver.Chrome(options=options)
 
-    def setUp(self):
-        options = Options()
+        # Base URL with sensible default
+        cls.base_url = os.getenv("BASE_URL", "http://localhost:3000")
 
-        if HEADLESS:
-            options.add_argument("--headless")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-
-        #  Create unique temporary user data dir
-        user_data_dir = tempfile.mkdtemp()
-        options.add_argument(f"--user-data-dir={user_data_dir}")
-
-        if not HEADLESS:
-            options.add_argument("--start-maximized")
-
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-
-
-    def tearDown(self):
-        if not HEADLESS:
-            print(" Waiting 5 seconds before closing the browser...")
-            time.sleep(3)
-        self.driver.quit()
-
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.quit()
 
     def test_homepage_title(self):
-        self.driver.get(BASE_URL)
+        self.driver.get(self.base_url)
         self.assertIn("Gitea", self.driver.title)
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2, exit=False)
