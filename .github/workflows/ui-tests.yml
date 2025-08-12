@@ -31,7 +31,7 @@ jobs:
 
       - name: Run UI tests (headless)
         env:
-          BASE_URL: http://52.211.112.5:3000
+          BASE_URL: http://34.250.0.69:3000
           HEADLESS: true
         run: |
           echo "Running UI tests against $BASE_URL in headless mode..."
