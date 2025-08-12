@@ -1,8 +1,9 @@
 # tests/test_login.py
 import os
 import sys
-import time
 import unittest
+import tempfile
+import shutil
 from pathlib import Path
 
 # Make project root importable so "from pages..." works
@@ -23,6 +24,17 @@ class TestLogin(unittest.TestCase):
             options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+
+        # Unique Chrome profile per class (prevents "profile in use" on CI)
+        cls.user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
+        options.add_argument(f"--user-data-dir={cls.user_data_dir}")
+
+        # Extra CI-friendly flags
+        options.add_argument("--remote-debugging-port=0")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-gpu")
+
         cls.driver = webdriver.Chrome(options=options)
 
         # Config & creds
@@ -32,7 +44,10 @@ class TestLogin(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.driver.quit()
+        try:
+            cls.driver.quit()
+        finally:
+            shutil.rmtree(cls.user_data_dir, ignore_errors=True)
 
     def test_login_with_pom(self):
         login = LoginPage(self.driver, self.base_url).open()
