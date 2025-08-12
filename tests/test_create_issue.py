@@ -27,7 +27,7 @@ class TestCreateIssue(unittest.TestCase):
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
-        # 🔑 unique Chrome profile per class (prevents "profile in use" on CI)
+        # unique Chrome profile per class (prevents "profile in use" on CI)
         cls.user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
         options.add_argument(f"--user-data-dir={cls.user_data_dir}")
 
@@ -53,9 +53,28 @@ class TestCreateIssue(unittest.TestCase):
         finally:
             shutil.rmtree(cls.user_data_dir, ignore_errors=True)
 
-    def test_create_issue(self):
-        API_TOKEN = os.getenv("GITEA_API_TOKEN")
+    def setUp(self):
+        # keep a list of (owner, repo_name) to delete even if the test fails
+        self._repos_to_cleanup: list[tuple[str, str]] = []
 
+    def tearDown(self):
+        api_token = os.getenv("GITEA_API_TOKEN")
+        if not self._repos_to_cleanup:
+            return
+
+        if not api_token:
+            print("[teardown] GITEA_API_TOKEN not set, skipping repo deletion for:",
+                  self._repos_to_cleanup)
+            return
+
+        for owner, repo_name in self._repos_to_cleanup:
+            try:
+                code = delete_repo(self.base_url, api_token, owner, repo_name)
+                print(f"[teardown] DELETE /repos/{owner}/{repo_name} -> {code}")
+            except Exception as e:
+                print(f"[teardown] failed to delete {owner}/{repo_name}: {e}")
+
+    def test_create_issue(self):
         # 1) Login
         login = LoginPage(self.driver, self.base_url).open()
         dashboard = login.login_as(self.creds["username"], self.creds["password"])
@@ -69,6 +88,9 @@ class TestCreateIssue(unittest.TestCase):
             .create_repository()
         )
 
+        # mark for cleanup ASAP so we delete even if later assertions fail
+        self._repos_to_cleanup.append((self.creds["username"], repo_name))
+
         # 3) New Issue
         new_issue = repo_page.go_to_issues().click_new_issue()
 
@@ -79,13 +101,6 @@ class TestCreateIssue(unittest.TestCase):
 
         # 5) Verify
         self.assertTrue(issue_page.get_title_text().startswith(title))
-
-        # 6) Cleanup repo
-        if API_TOKEN:
-            code = delete_repo(self.base_url, API_TOKEN, self.creds["username"], repo_name)
-            print(f"[cleanup] DELETE /repos/{self.creds['username']}/{repo_name} -> {code}")
-        else:
-            print("[cleanup] GITEA_API_TOKEN not set, skipping repo deletion.")
 
 
 if __name__ == "__main__":

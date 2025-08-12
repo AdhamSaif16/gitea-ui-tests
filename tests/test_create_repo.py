@@ -53,6 +53,24 @@ class TestCreateRepository(unittest.TestCase):
         finally:
             shutil.rmtree(cls.user_data_dir, ignore_errors=True)
 
+    def setUp(self):
+        # Track repos to delete: list of (owner, repo_name)
+        self._repos_to_cleanup = []
+
+    def tearDown(self):
+        if not self._repos_to_cleanup:
+            return
+        if not self.api_token:
+            print("[teardown] GITEA_API_TOKEN not set, skipping deletions for:",
+                  self._repos_to_cleanup)
+            return
+        for owner, repo_name in self._repos_to_cleanup:
+            try:
+                code = delete_repo(self.base_url, self.api_token, owner, repo_name)
+                print(f"[teardown] DELETE /repos/{owner}/{repo_name} -> {code}")
+            except Exception as e:
+                print(f"[teardown] failed to delete {owner}/{repo_name}: {e}")
+
     def test_create_repository(self):
         # 1) Login
         login = LoginPage(self.driver, self.base_url).open()
@@ -68,19 +86,15 @@ class TestCreateRepository(unittest.TestCase):
             .create_repository(pause_seconds=0.5)
         )
 
+        # Mark for cleanup immediately after creation
+        self._repos_to_cleanup.append((self.username, repo_name))
+
         # 3) Assertions
         self.assertEqual(repo_page.get_repo_name(), repo_name)
         self.assertTrue(repo_page.get_repo_full_name().startswith(f"{self.username}/"))
 
         path = urlparse(self.driver.current_url).path.rstrip("/")
         self.assertTrue(path.endswith(f"/{self.username}/{repo_name}"))
-
-        # 4) Cleanup repo (if token available)
-        if self.api_token:
-            code = delete_repo(self.base_url, self.api_token, self.username, repo_name)
-            print(f"[cleanup] DELETE /repos/{self.username}/{repo_name} -> {code}")
-        else:
-            print("[cleanup] GITEA_API_TOKEN not set, skipping repo deletion.")
 
 
 if __name__ == "__main__":
