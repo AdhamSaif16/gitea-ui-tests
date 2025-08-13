@@ -1,51 +1,58 @@
+# tests/test_homepage_title.py
 import os
+import sys
 import unittest
+import tempfile
+import shutil
+from pathlib import Path
+
+# Make project root importable so "from pages..." (if needed later) works
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from dotenv import load_dotenv
-import time
-import tempfile  
-# Load environment variables from .env
-load_dotenv()
-
-BASE_URL = os.getenv("BASE_URL")
-HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
-
-class GiteaUITest(unittest.TestCase):
 
 
-    def setUp(self):
-        options = Options()
+class TestHomepageTitle(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Headless by default unless HEADLESS="0"
+        headless_env = os.getenv("HEADLESS", "1")
+        cls.headless = headless_env not in ("0", "false", "False")
 
-        if HEADLESS:
-            options.add_argument("--headless")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
+        options = webdriver.ChromeOptions()
+        if cls.headless:
+            options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
-        #  Create unique temporary user data dir
-        user_data_dir = tempfile.mkdtemp()
-        options.add_argument(f"--user-data-dir={user_data_dir}")
+        # Unique Chrome profile per class
+        cls.user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
+        options.add_argument(f"--user-data-dir={cls.user_data_dir}")
 
-        if not HEADLESS:
-            options.add_argument("--start-maximized")
+        # Extra CI-friendly flags
+        options.add_argument("--remote-debugging-port=0")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-gpu")
 
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        cls.driver = webdriver.Chrome(options=options)
 
+        # Base URL with sensible default
+        cls.base_url = os.getenv("BASE_URL", "http://localhost:3000")
 
-
-    def tearDown(self):
-        if not HEADLESS:
-            print(" Waiting 5 seconds before closing the browser...")
-            time.sleep(3)
-        self.driver.quit()
-
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls.driver.quit()
+        finally:
+            shutil.rmtree(cls.user_data_dir, ignore_errors=True)
 
     def test_homepage_title(self):
-        self.driver.get(BASE_URL)
+        self.driver.get(self.base_url)
         self.assertIn("Gitea", self.driver.title)
 
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2, exit=False)

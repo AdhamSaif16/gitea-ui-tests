@@ -23,6 +23,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+
+      # ✅ Install Google Chrome on the runner
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
 
       - name: Install dependencies
         run: |
@@ -31,8 +38,11 @@ jobs:
 
       - name: Run UI tests (headless)
         env:
-          BASE_URL: http://52.211.112.5:3000
-          HEADLESS: true
+          BASE_URL: http://54.194.27.12:3000
+          HEADLESS: "1"           # <- your tests check for "1"
+          # GITEA_USERNAME: uitester
+          # GITEA_PASSWORD: TestPass123!
+          # GITEA_API_TOKEN: ${{ secrets.GITEA_API_TOKEN }}
         run: |
-          echo "Running UI tests against $BASE_URL in headless mode..."
+          chrome --version
           pytest tests -v
