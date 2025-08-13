@@ -27,7 +27,7 @@ class LoginPage(BasePage):
         """Perform login and return DashboardPage (page chaining)."""
         self.type(self.USERNAME, username)
         self.type(self.PASSWORD, password)
-        time.sleep(10)
+        
 
         # Capture the login URL to detect navigation
         old_url = self.driver.current_url
