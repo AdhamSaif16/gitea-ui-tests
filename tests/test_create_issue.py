@@ -76,6 +76,7 @@ class TestCreateIssue(unittest.TestCase):
 
     def test_create_issue(self):
         # 1) Login
+        #try CI
         login = LoginPage(self.driver, self.base_url).open()
         dashboard = login.login_as(self.creds["username"], self.creds["password"])
 
@@ -97,7 +98,9 @@ class TestCreateIssue(unittest.TestCase):
         # 4) Create the issue
         title = f"Issue title {uuid.uuid4().hex[:4]}"
         body = "This is a UI test issue body."
-        issue_page = new_issue.set_title(title).set_body(body).submit()
+        issue_page = new_issue.set_title(title)
+        issue_page = new_issue.set_body(body)
+        issue_page = new_issue.submit()
 
         # 5) Verify
         self.assertTrue(issue_page.get_title_text().startswith(title))
