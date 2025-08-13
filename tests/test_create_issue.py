@@ -76,7 +76,6 @@ class TestCreateIssue(unittest.TestCase):
 
     def test_create_issue(self):
         # 1) Login
-        #try CI
         login = LoginPage(self.driver, self.base_url).open()
         dashboard = login.login_as(self.creds["username"], self.creds["password"])
 
