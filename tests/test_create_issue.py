@@ -75,6 +75,7 @@ class TestCreateIssue(unittest.TestCase):
                 print(f"[teardown] failed to delete {owner}/{repo_name}: {e}")
 
     def test_create_issue(self):
+        #try CI
         # 1) Login
         login = LoginPage(self.driver, self.base_url).open()
         dashboard = login.login_as(self.creds["username"], self.creds["password"])
