@@ -38,7 +38,7 @@ jobs:
 
       - name: Run UI tests (headless)
         env:
-          BASE_URL: http://34.248.133.236:3000
+          BASE_URL: http://34.243.76.56:3000
           HEADLESS: "1"           # <- your tests check for "1"
           # GITEA_USERNAME: uitester
           # GITEA_PASSWORD: TestPass123!
