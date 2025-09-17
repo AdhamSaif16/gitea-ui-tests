@@ -1,4 +1,28 @@
 # Ignore environment variable files
 .env
-.pyc
+*pyc*
 .env.*
+# Python cache
+*/__pycache__*
+*.py[cod]
+# Environment files
+.env
+.env.local
+.env.*.local
+# Coverage reports
+coverage/
+*.lcov
+# Python cache
+__pycache__/
+*.py[cod]
+# Selenium UI testing artifacts
+screenshots/
+reports/
+*.png
+*.jpg
+# Misc
+*.tmp
+*.bak
+.pytest_cache
+.coverage
+.venv
