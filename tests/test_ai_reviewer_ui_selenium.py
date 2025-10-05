@@ -433,7 +433,39 @@ if __name__ == "__main__":
             owner, repo, pr_index, drv, pr_html_url, timeout_sec=ai_timeout, poll=5, refresh_every=10
         )
         self.assertTrue(ok, "AI review did not add expected label/comment within timeout")
-        time.sleep(PAUSE)
+
+        # --- refresh to see the AI comment ---
+        try:
+            # Hard reload of the PR page (safer than refresh when sessions redirect)
+            pr_html_url = f"{self.base_url}/{owner}/{repo}/pulls/{pr_index}"
+            self.driver.get(pr_html_url)
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "body"))
+            )
+
+            # Optionally wait until a comment containing the hint is visible
+            hint = self.expected_comment_hint or "risk"
+            WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((
+                    By.XPATH,
+                    "//*[contains(@class,'comment') or contains(@class,'timeline')]" 
+                    f"[.//*/text()[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), '{hint}')]]"
+                ))
+            )
+        except Exception:
+            # Fallback: soft refresh a couple of times
+            for _ in range(2):
+                try:
+                    self.driver.refresh()
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "body"))
+                    )
+                    time.sleep(2)
+                except Exception:
+                    time.sleep(1)
+
+        time.sleep(5)  # small settle pause before cleanup
+
 
         # 7) Close the PR (API)
         self._close_pr(owner, repo, pr_index)
